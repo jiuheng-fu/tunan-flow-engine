@@ -1,0 +1,32 @@
+server:
+  port: 3000
+spring:
+  application:
+    name: flow-engine
+
+  datasource:
+    url: jdbc:postgresql://localhost:5433/flow_ai_engine?stringtype=unspecified
+    username: postgres
+    password: postgres123
+    driver-class-name: org.postgresql.Driver
+  jackson:
+    serialization:
+      fail-on-empty-beans: false
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=500, expireAfterAccess=3600s
+logging:
+  level:
+    com.flow: DEBUG
+    com.flow.engine: INFO
+# MyBatis-Plus 配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 开发环境开启 SQL 日志
+  global-config:
+    db-config:
+      id-type: assign_id
+  # 关键配置：注册类型处理器
+  type-handlers-package: com.baomidou.mybatisplus.extension.handlers
