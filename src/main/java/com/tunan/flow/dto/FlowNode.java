@@ -9,7 +9,7 @@ import java.util.Map;
 public class FlowNode {
 
     private String id;
-    private String type;      // http, transform, filter, mcp, skill
+    private String type;      // http, transform, filter, mcp,
     private String name;
     private Double x;         // 画布坐标
     private Double y;
