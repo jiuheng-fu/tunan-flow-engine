@@ -190,11 +190,45 @@ mvn test
 - `function-call`
 - `agent-skill`
 
+## 执行器实现类映射
+
+| getType() | 实现类 | 所在目录 |
+|-----------|--------|----------|
+| `api-gateway` | ApiGatewayExecutor | component/gateway |
+| `rest-api` | RestApiExecutor | component/gateway |
+| `stream-api` | StreamApiExecutor | component/gateway |
+| `websocket-api` | WebSocketExecutor | component/gateway |
+| `mcp-tool` | McpToolExecutor | component/gateway |
+| `function-call` | FunctionCallExecutor | component/gateway |
+| `agent-skill` | AgentSkillExecutor | component/gateway |
+| `http` | HttpComponentExecutor | component/http |
+
+## 已知问题汇总
+
+### P0 — 阻碍性
+
+1. **Controller 缺少 unpublish 和 execute 接口**：`FlowPublishService.unpublish()` 和 `FlowExecutor.execute()` 已实现，但 `FlowController` 未暴露对应端点。前端已封装这两个接口，当前调用会 404。
+
+2. **response 节点无执行器**：发布校验 `validateFlow` 强制要求流程包含 `response` 节点，但没有对应的 `ComponentExecutor` 实现。一旦流程执行到 response 节点会抛"不支持的组件类型"。
+
+3. **designFlow 返回 null**：`FlowServiceImpl.designFlow()` 保存成功后返回 `null`，Controller 声明返回 `Result<FlowDefinition>`。如果前端依赖返回值（如获取更新后的流程数据），会出问题。
+
+### P1 — 功能性
+
+4. **10 个节点类型缺少执行器**：`database`、`redis`、`transform`、`filter`、`condition`、`java`、`python`、`javascript`、`response`、`ai-chat`。前端可拖拽这些节点，但后端执行时报"不支持的组件类型"。
+
+5. **executeParallel 不是真正的并行**：方法名和注释称"并行执行"，实际是串行 for 循环依次执行多个下游节点。
+
+6. **数据库无初始化脚本**：`pom.xml` 引入了 Flyway 依赖，但没有迁移文件（`src/main/resources/db/migration` 不存在），也没有建表 SQL 脚本。
+
+### P2 — 优化性
+
+7. **deleteFlow 真删除**：当前直接 `removeById`，代码注释提到后续改成逻辑删除（状态改为 archived）。
+
+8. **JavaScript 引擎兼容性**：条件连线依赖 `ScriptEngineManager.getEngineByName("javascript")`，Java 17 默认不包含 Nashorn，需要确认运行环境是否有 GraalJS 或额外配置。
+
 ## 开发注意事项
 
 - 新增节点执行能力时，实现 `ComponentExecutor` 并注册为 Spring Bean，`FlowExecutor.init()` 会自动放入 `executorMap`。
 - 新增前端节点类型时，要同步确认后端执行器类型、发布校验、动态网关注册逻辑。
-- `FlowServiceImpl.designFlow` 当前保存后返回 `null`，但 Controller 返回 `Result<FlowDefinition>`，如果前端依赖返回值，需要调整。
-- `FlowServiceImpl.deleteFlow` 当前是真删除，代码注释里提到后续可能改成逻辑删除。
-- Java 17 默认环境下 JavaScript 脚本引擎可用性需要确认，条件连线依赖它。
 - 当前端接口报 404 时，优先检查前端 `src/api/flow.js` 和后端 `FlowController` 是否对齐。
